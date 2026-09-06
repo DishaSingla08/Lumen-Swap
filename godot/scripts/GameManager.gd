@@ -47,9 +47,13 @@ func _bind_action_key(action_name: String, keys: Array) -> void:
 	if not InputMap.has_action(action_name):
 		InputMap.add_action(action_name)
 	for k in keys:
-		var ev = InputEventKey.new()
-		ev.physical_keycode = k
-		InputMap.action_add_event(action_name, ev)
+		var ev1 = InputEventKey.new()
+		ev1.physical_keycode = k
+		InputMap.action_add_event(action_name, ev1)
+		
+		var ev2 = InputEventKey.new()
+		ev2.keycode = k
+		InputMap.action_add_event(action_name, ev2)
 
 func start_game(level_idx: int = 0) -> void:
 	current_level_index = level_idx

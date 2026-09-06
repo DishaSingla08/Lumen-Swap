@@ -2,7 +2,8 @@
 export class InputManager {
   constructor() {
     this.keys = new Map();
-    this.prevKeys = new Map();
+    this.justPressedKeys = new Set();
+    this.justReleasedKeys = new Set();
 
     this.touchControls = {
       left: false,
@@ -10,7 +11,10 @@ export class InputManager {
       jump: false,
       swap: false,
     };
-    this.prevTouchControls = { ...this.touchControls };
+    this.touchJustPressed = {
+      jump: false,
+      swap: false,
+    };
 
     this.gamepadIndex = null;
     this.prevGamepadButtons = [];
@@ -24,17 +28,40 @@ export class InputManager {
       if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
         e.preventDefault();
       }
-      this.keys.set(e.code, true);
+
+      const keysToRegister = [e.code];
+      if (e.key) {
+        keysToRegister.push(e.key.toLowerCase());
+        keysToRegister.push(e.key.toUpperCase());
+      }
+
+      for (const k of keysToRegister) {
+        if (!this.keys.get(k)) {
+          this.justPressedKeys.add(k);
+        }
+        this.keys.set(k, true);
+      }
     });
 
     window.addEventListener('keyup', (e) => {
-      this.keys.set(e.code, false);
+      const keysToUnregister = [e.code];
+      if (e.key) {
+        keysToUnregister.push(e.key.toLowerCase());
+        keysToUnregister.push(e.key.toUpperCase());
+      }
+
+      for (const k of keysToUnregister) {
+        this.keys.set(k, false);
+        this.justReleasedKeys.add(k);
+      }
     });
 
     window.addEventListener('blur', () => {
       this.keys.clear();
-      this.prevKeys.clear();
+      this.justPressedKeys.clear();
+      this.justReleasedKeys.clear();
       for (const k in this.touchControls) this.touchControls[k] = false;
+      for (const k in this.touchJustPressed) this.touchJustPressed[k] = false;
     });
 
     window.addEventListener('gamepadconnected', (e) => {
@@ -49,9 +76,11 @@ export class InputManager {
   }
 
   update() {
-    // Save current states as previous before next frame
-    this.prevKeys = new Map(this.keys);
-    this.prevTouchControls = { ...this.touchControls };
+    // Clear one-frame transient triggers
+    this.justPressedKeys.clear();
+    this.justReleasedKeys.clear();
+    this.touchJustPressed.jump = false;
+    this.touchJustPressed.swap = false;
 
     // Poll Gamepad if available
     if (this.gamepadIndex !== null && navigator.getGamepads) {
@@ -62,16 +91,25 @@ export class InputManager {
     }
   }
 
-  isKeyDown(code) {
-    return !!this.keys.get(code);
+  isKeyDown(...codes) {
+    for (const code of codes) {
+      if (this.keys.get(code)) return true;
+    }
+    return false;
   }
 
-  isKeyJustPressed(code) {
-    return !!this.keys.get(code) && !this.prevKeys.get(code);
+  isKeyJustPressed(...codes) {
+    for (const code of codes) {
+      if (this.justPressedKeys.has(code)) return true;
+    }
+    return false;
   }
 
-  isKeyJustReleased(code) {
-    return !this.keys.get(code) && !!this.prevKeys.get(code);
+  isKeyJustReleased(...codes) {
+    for (const code of codes) {
+      if (this.justReleasedKeys.has(code)) return true;
+    }
+    return false;
   }
 
   getGamepad() {
@@ -84,7 +122,7 @@ export class InputManager {
   // --- High-Level Action Helpers ---
 
   get moveLeft() {
-    const key = this.isKeyDown('KeyA') || this.isKeyDown('ArrowLeft');
+    const key = this.isKeyDown('KeyA', 'a', 'A', 'ArrowLeft');
     const touch = this.touchControls.left;
     let gp = false;
     const pad = this.getGamepad();
@@ -97,7 +135,7 @@ export class InputManager {
   }
 
   get moveRight() {
-    const key = this.isKeyDown('KeyD') || this.isKeyDown('ArrowRight');
+    const key = this.isKeyDown('KeyD', 'd', 'D', 'ArrowRight');
     const touch = this.touchControls.right;
     let gp = false;
     const pad = this.getGamepad();
@@ -110,19 +148,19 @@ export class InputManager {
   }
 
   get jumpJustPressed() {
-    const key = this.isKeyJustPressed('Space') || this.isKeyJustPressed('KeyW') || this.isKeyJustPressed('ArrowUp');
-    const touch = this.touchControls.jump && !this.prevTouchControls.jump;
+    // W key, Space, or ArrowUp
+    const key = this.isKeyJustPressed('KeyW', 'w', 'W', 'Space', ' ', 'ArrowUp');
+    const touch = this.touchJustPressed.jump;
     let gp = false;
     const pad = this.getGamepad();
     if (pad && this.prevGamepadButtons.length) {
-      // Button 0 is 'A' (Xbox) / 'Cross' (PlayStation)
       gp = pad.buttons[0]?.pressed && !this.prevGamepadButtons[0];
     }
     return key || touch || gp;
   }
 
   get jumpHeld() {
-    const key = this.isKeyDown('Space') || this.isKeyDown('KeyW') || this.isKeyDown('ArrowUp');
+    const key = this.isKeyDown('KeyW', 'w', 'W', 'Space', ' ', 'ArrowUp');
     const touch = this.touchControls.jump;
     let gp = false;
     const pad = this.getGamepad();
@@ -133,8 +171,8 @@ export class InputManager {
   }
 
   get jumpJustReleased() {
-    const key = this.isKeyJustReleased('Space') || this.isKeyJustReleased('KeyW') || this.isKeyJustReleased('ArrowUp');
-    const touch = !this.touchControls.jump && this.prevTouchControls.jump;
+    const key = this.isKeyJustReleased('KeyW', 'w', 'W', 'Space', ' ', 'ArrowUp');
+    const touch = !this.touchControls.jump;
     let gp = false;
     const pad = this.getGamepad();
     if (pad && this.prevGamepadButtons.length) {
@@ -144,37 +182,53 @@ export class InputManager {
   }
 
   get swapJustPressed() {
-    const key = (
-      this.isKeyJustPressed('ShiftLeft') ||
-      this.isKeyJustPressed('ShiftRight') ||
-      this.isKeyJustPressed('KeyJ') ||
-      this.isKeyJustPressed('KeyX') ||
-      this.isKeyJustPressed('KeyC') ||
-      this.isKeyJustPressed('KeyK') ||
-      this.isKeyJustPressed('Enter')
+    const key = this.isKeyJustPressed(
+      'ShiftLeft', 'ShiftRight', 'Shift',
+      'KeyJ', 'j', 'J',
+      'KeyX', 'x', 'X',
+      'KeyC', 'c', 'C',
+      'Enter'
     );
-    const touch = this.touchControls.swap && !this.prevTouchControls.swap;
+    const touch = this.touchJustPressed.swap;
     let gp = false;
     const pad = this.getGamepad();
     if (pad && this.prevGamepadButtons.length) {
-      // Button 1 (B), 2 (X), 4 (L1), 5 (R1)
-      const pressedNow = pad.buttons[1]?.pressed || pad.buttons[2]?.pressed || pad.buttons[4]?.pressed || pad.buttons[5]?.pressed;
-      const pressedPrev = this.prevGamepadButtons[1] || this.prevGamepadButtons[2] || this.prevGamepadButtons[4] || this.prevGamepadButtons[5];
-      gp = pressedNow && !pressedPrev;
+      gp = (pad.buttons[1]?.pressed && !this.prevGamepadButtons[1]) ||
+           (pad.buttons[2]?.pressed && !this.prevGamepadButtons[2]) ||
+           (pad.buttons[4]?.pressed && !this.prevGamepadButtons[4]) ||
+           (pad.buttons[5]?.pressed && !this.prevGamepadButtons[5]);
     }
     return key || touch || gp;
   }
 
   get resetJustPressed() {
-    return this.isKeyJustPressed('KeyR');
+    return this.isKeyJustPressed('KeyR', 'r', 'R');
   }
 
   get pauseJustPressed() {
-    return this.isKeyJustPressed('Escape') || this.isKeyJustPressed('KeyP');
+    const key = this.isKeyJustPressed('Escape', 'KeyP', 'p', 'P');
+    let gp = false;
+    const pad = this.getGamepad();
+    if (pad && this.prevGamepadButtons.length) {
+      gp = pad.buttons[9]?.pressed && !this.prevGamepadButtons[9];
+    }
+    return key || gp;
   }
 
   get editorJustPressed() {
-    return this.isKeyJustPressed('KeyE');
+    return this.isKeyJustPressed('KeyE', 'e', 'E');
+  }
+
+  // --- Mobile Touch Wiring ---
+  setTouch(action, isPressed) {
+    if (this.touchControls.hasOwnProperty(action)) {
+      if (isPressed && !this.touchControls[action]) {
+        if (this.touchJustPressed.hasOwnProperty(action)) {
+          this.touchJustPressed[action] = true;
+        }
+      }
+      this.touchControls[action] = isPressed;
+    }
   }
 }
 

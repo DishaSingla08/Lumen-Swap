@@ -395,9 +395,6 @@ class Game {
       }
     }
 
-    // Input poll
-    Input.update();
-
     if (this.state === STATES.PLAYING) {
       // Pause shortcut
       if (Input.pauseJustPressed) {
@@ -460,6 +457,9 @@ class Game {
         this.resumeGame();
       }
     }
+
+    // Flush transient input triggers at end of frame
+    Input.update();
 
     requestAnimationFrame((t) => this.loop(t));
   }
