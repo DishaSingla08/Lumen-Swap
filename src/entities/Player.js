@@ -40,6 +40,8 @@ export class Player {
     this.isDead = false;
     this.invulnerableTimer = 0;
     this.absorbedHazardRecently = 0;
+    this.facingDir = 1;
+    this.walkAnimTimer = 0;
   }
 
   reset(x = this.spawnX, y = this.spawnY) {
@@ -121,9 +123,12 @@ export class Player {
       if (Math.abs(this.vx) > PHYSICS.MAX_RUN_SPEED) {
         this.vx = Math.sign(this.vx) * PHYSICS.MAX_RUN_SPEED;
       }
+      this.facingDir = moveDir;
+      this.walkAnimTimer += 0.25;
     } else {
       this.vx *= PHYSICS.MOVE_DECEL;
       if (Math.abs(this.vx) < 0.1) this.vx = 0;
+      this.walkAnimTimer = 0;
     }
 
     // 3. Grounded & Coyote Time
@@ -244,36 +249,58 @@ export class Player {
     const isWhite = this.form === FORMS.WHITE;
     const bodyColor = isWhite ? COLORS.WHITE : COLORS.RED;
 
-    // Overcharge halo if recently absorbed hazard
+    // Overcharge energy aura if recently absorbed hazard (matching Panel 2)
     if (this.lumenRechargeEffect > 0) {
       ctx.save();
+      const auraPulse = Math.sin(this.lumenRechargeEffect * 0.8) * 3;
       ctx.strokeStyle = COLORS.RED;
       ctx.lineWidth = 2;
-      ctx.shadowColor = COLORS.RED;
-      ctx.shadowBlur = 10;
-      ctx.strokeRect(-this.width / 2 - 4, -this.height / 2 - 4, this.width + 8, this.height + 8);
+      ctx.strokeRect(-this.width / 2 - 4 - auraPulse, -this.height / 2 - 4 - auraPulse, this.width + 8 + auraPulse * 2, this.height + 8 + auraPulse * 2);
+      ctx.strokeStyle = COLORS.WHITE;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(-this.width / 2 - 2, -this.height / 2 - 2, this.width + 4, this.height + 4);
       ctx.restore();
     }
 
-    // Outer crisp body
+    // 1. Head (10x9 rounded block)
+    const hy = -6;
     ctx.fillStyle = bodyColor;
-    ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
-
-    // Black border/outline
+    ctx.fillRect(-5, hy - 4, 10, 9);
     ctx.strokeStyle = COLORS.BLACK;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(-this.width / 2, -this.height / 2, this.width, this.height);
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-5, hy - 4, 10, 9);
 
-    // Inner contrasting geometric eye/core
-    // When White: Black inner core with White pinpoint
-    // When Red: White inner core with Black pinpoint
-    const coreSize = 6;
-    ctx.fillStyle = isWhite ? COLORS.BLACK : COLORS.WHITE;
-    ctx.fillRect(-coreSize / 2, -coreSize / 2, coreSize, coreSize);
+    // Expressive eye dot facing movement direction
+    const eyeX = this.facingDir * 2;
+    ctx.fillStyle = COLORS.BLACK;
+    ctx.fillRect(eyeX - 1, hy - 1, 2, 3);
 
-    const dotSize = 2;
-    ctx.fillStyle = isWhite ? COLORS.WHITE : COLORS.BLACK;
-    ctx.fillRect(-dotSize / 2, -dotSize / 2, dotSize, dotSize);
+    // 2. Torso (8x7 chest)
+    const ty = 2;
+    ctx.fillStyle = bodyColor;
+    ctx.fillRect(-4, ty - 2, 8, 7);
+    ctx.strokeRect(-4, ty - 2, 8, 7);
+
+    // 3. Arms (animated swing when moving)
+    const armSwing = this.isGrounded ? Math.sin(this.walkAnimTimer) * 3 : -2;
+    // Front arm
+    ctx.fillRect(this.facingDir * 3 - 1, ty - 1 + armSwing, 3, 5);
+    // Back arm
+    ctx.fillRect(-this.facingDir * 3 - 1, ty - 1 - armSwing, 3, 5);
+
+    // 4. Legs (stride or jump pose)
+    const legY = ty + 5;
+    if (!this.isGrounded) {
+      // Airborne jump pose: legs bent
+      ctx.fillRect(-4, legY, 3, 4);
+      ctx.fillRect(1, legY - 1, 3, 5);
+    } else {
+      const legOffset = Math.sin(this.walkAnimTimer) * 3;
+      // Left leg
+      ctx.fillRect(-4, legY, 3, 5 + legOffset);
+      // Right leg
+      ctx.fillRect(1, legY, 3, 5 - legOffset);
+    }
 
     ctx.restore();
   }

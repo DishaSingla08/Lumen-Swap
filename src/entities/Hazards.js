@@ -117,35 +117,34 @@ export class LaserBeam {
     }
 
     if (this.isActive) {
-      const flicker = 0.85 + Math.sin(time * 0.02 + this.x) * 0.15;
-
-      // Outer Red Hazard Core
-      ctx.strokeStyle = COLORS.RED;
-      ctx.lineWidth = this.beamThickness * flicker;
-      ctx.shadowColor = COLORS.RED;
-      ctx.shadowBlur = 8;
+      // Procedural crackling zigzag lightning bolt (matching Panels 2 & 3)
+      const segLen = 16;
+      const numSegs = Math.floor(this.length / segLen);
       ctx.beginPath();
       if (isVert) {
         ctx.moveTo(this.x, this.y);
+        for (let i = 1; i < numSegs; i++) {
+          const crackle = Math.sin(time * 0.035 + i * 2.5) * 7;
+          ctx.lineTo(this.x + crackle, this.y + i * segLen);
+        }
         ctx.lineTo(this.x, this.y + this.length);
       } else {
         ctx.moveTo(this.x, this.y);
+        for (let i = 1; i < numSegs; i++) {
+          const crackle = Math.sin(time * 0.035 + i * 2.5) * 7;
+          ctx.lineTo(this.x + i * segLen, this.y + crackle);
+        }
         ctx.lineTo(this.x + this.length, this.y);
       }
+
+      // Outer Red Lightning Arc
+      ctx.strokeStyle = COLORS.RED;
+      ctx.lineWidth = 5;
       ctx.stroke();
 
-      // Inner White Intense Core
-      ctx.shadowBlur = 0;
+      // Inner White Core Arc
       ctx.strokeStyle = COLORS.WHITE;
       ctx.lineWidth = 2;
-      ctx.beginPath();
-      if (isVert) {
-        ctx.moveTo(this.x, this.y);
-        ctx.lineTo(this.x, this.y + this.length);
-      } else {
-        ctx.moveTo(this.x, this.y);
-        ctx.lineTo(this.x + this.length, this.y);
-      }
       ctx.stroke();
     } else {
       // Inactive warning indicator (faint dashed red line)
@@ -222,26 +221,62 @@ export class ExitPortal {
 
   draw(ctx, time) {
     ctx.save();
-    ctx.translate(this.x, this.y);
+    const floatY = Math.sin(time * 0.004) * 4;
+    ctx.translate(this.x, this.y + floatY);
 
-    const rot1 = time * 0.003;
-    const rot2 = -time * 0.004;
+    // Dual-Color Lumen Key Artifact (Panel 3): Left half White, Right half Red
+    const bowY = -12;
 
-    // Outer rotating square
-    ctx.rotate(rot1);
+    // 1. Key Bow / Head (Top Ring)
+    // Left half (White)
+    ctx.beginPath();
+    ctx.arc(0, bowY, 7, Math.PI * 0.5, Math.PI * 1.5);
+    ctx.strokeStyle = COLORS.WHITE;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Right half (Red)
+    ctx.beginPath();
+    ctx.arc(0, bowY, 7, -Math.PI * 0.5, Math.PI * 0.5);
+    ctx.strokeStyle = COLORS.RED;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Center contrast dot
+    ctx.fillStyle = COLORS.BLACK;
+    ctx.fillRect(-2, bowY - 2, 4, 4);
+
+    // 2. Key Stem / Shaft
+    const stemTop = bowY + 7;
+    const stemBot = 12;
+    // Left half (White)
     ctx.strokeStyle = COLORS.WHITE;
     ctx.lineWidth = 2;
-    ctx.strokeRect(-16, -16, 32, 32);
+    ctx.beginPath();
+    ctx.moveTo(-1, stemTop);
+    ctx.lineTo(-1, stemBot);
+    ctx.stroke();
 
-    // Middle rotating red diamond
-    ctx.rotate(rot2);
+    // Right half (Red)
     ctx.strokeStyle = COLORS.RED;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(-11, -11, 22, 22);
+    ctx.beginPath();
+    ctx.moveTo(1, stemTop);
+    ctx.lineTo(1, stemBot);
+    ctx.stroke();
 
-    // Inner core
+    // 3. Key Teeth
+    ctx.fillStyle = COLORS.RED;
+    ctx.fillRect(2, 2, 6, 3);
+    ctx.fillRect(2, 8, 4, 3);
     ctx.fillStyle = COLORS.WHITE;
-    ctx.fillRect(-4, -4, 8, 8);
+    ctx.fillRect(-5, 5, 4, 3);
+
+    // Glint sparkle
+    const sparkleAngle = time * 0.003;
+    const spX = Math.cos(sparkleAngle) * 12;
+    const spY = Math.sin(sparkleAngle) * 12;
+    ctx.fillStyle = COLORS.WHITE;
+    ctx.fillRect(spX - 1, spY - 1, 2, 2);
 
     ctx.restore();
   }

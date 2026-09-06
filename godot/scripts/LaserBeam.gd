@@ -35,7 +35,10 @@ func _ready() -> void:
 	col_shape.shape = rect
 	add_child(col_shape)
 
+var anim_time: float = 0.0
+
 func _process(delta: float) -> void:
+	anim_time += delta
 	if is_pulsing:
 		phase += pulse_speed * delta
 		var active_now = sin(phase) > -0.2
@@ -48,22 +51,48 @@ func _draw() -> void:
 	var total_len = length_tiles * Constants.TILE_SIZE
 	var is_vert = (orientation == "vertical")
 	
-	# Emitter mounts (Solid White)
+	# Emitter mounts (Solid White with Black contrast edge)
 	if is_vert:
 		draw_rect(Rect2(-8, -4, 16, 4), Constants.COLOR_WHITE)
+		draw_rect(Rect2(-8, -4, 16, 4), Constants.COLOR_BLACK, false, 1.0)
 		draw_rect(Rect2(-8, total_len, 16, 4), Constants.COLOR_WHITE)
+		draw_rect(Rect2(-8, total_len, 16, 4), Constants.COLOR_BLACK, false, 1.0)
 	else:
 		draw_rect(Rect2(-4, -8, 4, 16), Constants.COLOR_WHITE)
+		draw_rect(Rect2(-4, -8, 4, 16), Constants.COLOR_BLACK, false, 1.0)
 		draw_rect(Rect2(total_len, -8, 4, 16), Constants.COLOR_WHITE)
+		draw_rect(Rect2(total_len, -8, 4, 16), Constants.COLOR_BLACK, false, 1.0)
 	
 	if is_active:
-		var start_p = Vector2.ZERO
-		var end_p = Vector2(0, total_len) if is_vert else Vector2(total_len, 0)
+		# Procedural crackling zigzag lightning bolt (matching Panels 2 & 3)
+		var seg_len = 16.0
+		var num_segs = int(total_len / seg_len)
+		var pts = PackedVector2Array()
+		pts.append(Vector2.ZERO)
 		
-		# Outer Red Beam (thickness 6)
-		draw_line(start_p, end_p, Constants.COLOR_RED, beam_thickness)
-		# Inner Intense White Core (thickness 2)
-		draw_line(start_p, end_p, Constants.COLOR_WHITE, 2.0)
+		for i in range(1, num_segs):
+			var dist = i * seg_len
+			# Crackle offset based on segment index and time
+			var crackle = sin(anim_time * 30.0 + i * 2.5) * 7.0
+			if is_vert:
+				pts.append(Vector2(crackle, dist))
+			else:
+				pts.append(Vector2(dist, crackle))
+		
+		var end_pt = Vector2(0, total_len) if is_vert else Vector2(total_len, 0)
+		pts.append(end_pt)
+		
+		# Outer Red Lightning Arc (thickness 5)
+		draw_polyline(pts, Constants.COLOR_RED, 5.0, true)
+		# Inner Intense White Core Arc (thickness 2)
+		draw_polyline(pts, Constants.COLOR_WHITE, 2.0, true)
+		
+		# Occasional crackle branch fork
+		if num_segs > 3:
+			var mid_idx = num_segs / 2
+			var branch_start = pts[mid_idx]
+			var branch_end = branch_start + (Vector2(10.0, 8.0) if is_vert else Vector2(8.0, 10.0))
+			draw_line(branch_start, branch_end, Constants.COLOR_RED, 2.0)
 	else:
 		# Inactive warning state: 1-bit dashed Red line
 		var segment_len = 8.0

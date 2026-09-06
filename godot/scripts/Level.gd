@@ -174,31 +174,50 @@ func _draw() -> void:
 	for tile_coord in white_tiles.keys():
 		var rect = Rect2(tile_coord.x * ts, tile_coord.y * ts, ts, ts)
 		if is_white_form:
-			# Solid White block with crisp Black inner border
-			draw_rect(rect, Constants.COLOR_WHITE, true)
-			draw_rect(rect, Constants.COLOR_BLACK, false, 1.0)
+			# Solid White rounded slab with glowing top surface highlight
+			_draw_solid_slab(rect, Constants.COLOR_WHITE)
 		else:
-			# Ghost White state: Strict 1-bit geometric checkerboard pattern
-			_draw_dither_tile(rect, Constants.COLOR_WHITE)
+			# Ghost White state: 1-bit dithered slab + ghost white silhouette
+			_draw_ghost_slab(rect, Constants.COLOR_WHITE, true)
 
 	# 2. Draw Red Platforms
 	for tile_coord in red_tiles.keys():
 		var rect = Rect2(tile_coord.x * ts, tile_coord.y * ts, ts, ts)
 		if not is_white_form:
-			# Solid Red block with crisp Black inner border
-			draw_rect(rect, Constants.COLOR_RED, true)
-			draw_rect(rect, Constants.COLOR_BLACK, false, 1.0)
+			# Solid Red rounded slab with glowing top surface highlight
+			_draw_solid_slab(rect, Constants.COLOR_RED)
 		else:
-			# Ghost Red state: Strict 1-bit geometric checkerboard pattern
-			_draw_dither_tile(rect, Constants.COLOR_RED)
+			# Ghost Red state: 1-bit dithered slab + ghost red silhouette
+			_draw_ghost_slab(rect, Constants.COLOR_RED, false)
 
-# Strict 1-bit dither: alternating pure color pixels, zero transparency
-func _draw_dither_tile(r: Rect2, col: Color) -> void:
-	# Crisp outline
+# Solid slab with glowing top surface highlight cap (Panel 1)
+func _draw_solid_slab(r: Rect2, col: Color) -> void:
+	# Main block fill
+	draw_rect(r, col, true)
+	# Contrast outline
+	draw_rect(r, Constants.COLOR_BLACK, false, 1.0)
+	# Intense top surface cap highlight
+	var top_highlight = Rect2(r.position.x + 1, r.position.y + 1, r.size.x - 2, 4)
+	draw_rect(top_highlight, Constants.COLOR_WHITE if col == Constants.COLOR_WHITE else Constants.COLOR_WHITE, true)
+
+# Ghost slab: 1-bit dither + wireframe + ghost humanoid silhouette (Panel 1)
+func _draw_ghost_slab(r: Rect2, col: Color, is_white_ghost: bool) -> void:
+	# Wireframe outline
 	draw_rect(r, col, false, 1.0)
+	
 	# Geometric 1-bit stipple lines
 	var step = 4.0
 	for y in range(int(r.position.y + 2), int(r.position.y + r.size.y - 2), int(step)):
 		for x in range(int(r.position.x + 2), int(r.position.x + r.size.x - 2), int(step)):
 			if (int(x / step) + int(y / step)) % 2 == 0:
 				draw_rect(Rect2(x, y, 2, 2), col, true)
+				
+	# Ghost character silhouette standing on platform (matching infographic Panel 1)
+	var char_center = Vector2(r.position.x + r.size.x * 0.5, r.position.y - 8)
+	# Ghost head
+	draw_rect(Rect2(char_center.x - 3, char_center.y - 6, 6, 5), col, false, 1.0)
+	# Ghost body
+	draw_rect(Rect2(char_center.x - 2, char_center.y - 1, 4, 5), col, false, 1.0)
+	# Ghost legs
+	draw_line(Vector2(char_center.x - 2, char_center.y + 4), Vector2(char_center.x - 2, char_center.y + 8), col, 1.0)
+	draw_line(Vector2(char_center.x + 1, char_center.y + 4), Vector2(char_center.x + 1, char_center.y + 8), col, 1.0)

@@ -108,8 +108,11 @@ func _physics_process(delta: float) -> void:
 	var move_dir = Input.get_axis("move_left", "move_right")
 	if move_dir != 0:
 		velocity.x = move_toward(velocity.x, move_dir * Constants.MAX_RUN_SPEED, Constants.MOVE_ACCEL * delta)
+		facing_dir = signf(move_dir)
+		walk_anim_timer += delta * 12.0
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, Constants.MOVE_DECEL * delta)
+		walk_anim_timer = 0.0
 
 	# 3. Grounded & Coyote Time
 	if is_on_floor():
@@ -233,6 +236,18 @@ func _on_interactive_entered(area: Area2D) -> void:
 	elif area is ExitPortal:
 		area.trigger()
 
+var facing_dir: float = 1.0
+var walk_anim_timer: float = 0.0
+
+# Death shatter particles
+class DeathParticle:
+	var pos: Vector2
+	var vel: Vector2
+	var col: Color
+	var life: float = 0.5
+
+var death_particles: Array[DeathParticle] = []
+
 func die() -> void:
 	if is_dead:
 		return
@@ -241,47 +256,94 @@ func die() -> void:
 	GameManager.record_death()
 	died.emit()
 	
-	# Small delay then respawn at checkpoint or spawn
-	await get_tree().create_timer(0.45).timeout
+	# Spawn shatter particles matching infographic
+	death_particles.clear()
+	var col = Constants.COLOR_WHITE if current_form == Constants.Form.WHITE else Constants.COLOR_RED
+	for i in range(16):
+		var p = DeathParticle.new()
+		p.pos = Vector2(randf_range(-8, 8), randf_range(-10, 10))
+		var angle = randf() * TAU
+		var spd = randf_range(80, 240)
+		p.vel = Vector2(cos(angle), sin(angle)) * spd
+		p.col = Constants.COLOR_RED if (i % 3 != 0) else Constants.COLOR_WHITE
+		death_particles.append(p)
+	
+	# Delay then respawn
+	await get_tree().create_timer(0.55).timeout
 	var target_pos = GameManager.active_checkpoint_pos if GameManager.has_checkpoint else spawn_position
 	reset_to_spawn(target_pos)
 
-func _draw() -> void:
+func _process(delta: float) -> void:
 	if is_dead:
+		for p in death_particles:
+			p.pos += p.vel * delta
+			p.life -= delta
+		queue_redraw()
+
+func _draw() -> void:
+	# 1. Draw death explosion particles if dead
+	if is_dead:
+		for p in death_particles:
+			if p.life > 0.0:
+				draw_rect(Rect2(p.pos, Vector2(3, 3)), p.col, true)
 		return
 
-	# Draw 1-bit wireframe trails (pure 3-color lines)
-	for t in trails:
-		var rel_pos = to_local(t.pos)
-		var trail_col = Constants.COLOR_WHITE if t.form == Constants.Form.WHITE else Constants.COLOR_RED
-		var r = Rect2(rel_pos - SIZE * 0.5, SIZE)
-		draw_rect(r, trail_col, false, 1.0)
 
-	var half = SIZE * 0.5 * visual_scale
-	var body_rect = Rect2(-half, SIZE * visual_scale)
 	var is_white = (current_form == Constants.Form.WHITE)
 	var body_color = Constants.COLOR_WHITE if is_white else Constants.COLOR_RED
 
-	# Overcharge halo outline if hazard absorbed (alternating crisp lines)
+	# 2. Overcharge Energy Aura (from Panel 2) when hazard is absorbed
 	if absorb_glow_timer > 0.0:
-		var halo_rect = Rect2(-half - Vector2(4, 4), (SIZE + Vector2(8, 8)) * visual_scale)
-		draw_rect(halo_rect, Constants.COLOR_RED, false, 2.0)
-		var inner_halo = Rect2(-half - Vector2(2, 2), (SIZE + Vector2(4, 4)) * visual_scale)
-		draw_rect(inner_halo, Constants.COLOR_WHITE, false, 1.0)
+		var aura_pulse = sin(absorb_glow_timer * 25.0) * 2.0
+		var aura_pts = PackedVector2Array([
+			Vector2(-9 - aura_pulse, -16),
+			Vector2(0, -19 - aura_pulse),
+			Vector2(9 + aura_pulse, -16),
+			Vector2(11 + aura_pulse, 0),
+			Vector2(7 + aura_pulse, 12 + aura_pulse),
+			Vector2(-7 - aura_pulse, 12 + aura_pulse),
+			Vector2(-11 - aura_pulse, 0),
+		])
+		aura_pts.append(aura_pts[0])
+		draw_polyline(aura_pts, Constants.COLOR_RED, 2.0, true)
+		draw_polyline(aura_pts, Constants.COLOR_WHITE, 1.0, true)
 
-	# Outer solid crisp body
-	draw_rect(body_rect, body_color, true)
+	# 3. Draw Pixel Humanoid Hero (Head, Eye, Torso, Arms, Legs)
+	var hx = 0.0
+	var hy = -8.0 # head center
 
-	# Crisp Black border/outline
-	draw_rect(body_rect, Constants.COLOR_BLACK, false, 2.0)
+	# Head (10x9 rounded block)
+	draw_rect(Rect2(hx - 5, hy - 5, 10, 9), body_color, true)
+	# Contrast outline on head
+	draw_rect(Rect2(hx - 5, hy - 5, 10, 9), Constants.COLOR_BLACK, false, 1.0)
 
-	# Inner contrasting geometric core
-	# White Form: Black core with White center pupil
-	# Red Form: White core with Black center pupil
-	var core_size = Vector2(6, 6) * visual_scale
-	var core_color = Constants.COLOR_BLACK if is_white else Constants.COLOR_WHITE
-	draw_rect(Rect2(-core_size * 0.5, core_size), core_color, true)
+	# Expressive eye dot facing movement direction
+	var eye_x = hx + (2.0 * facing_dir)
+	var eye_y = hy - 1.0
+	draw_rect(Rect2(eye_x - 1, eye_y - 1, 2, 3), Constants.COLOR_BLACK, true)
 
-	var pupil_size = Vector2(2, 2) * visual_scale
-	var pupil_color = Constants.COLOR_WHITE if is_white else Constants.COLOR_BLACK
-	draw_rect(Rect2(-pupil_size * 0.5, pupil_size), pupil_color, true)
+	# Torso (8x7 pixel chest)
+	var tx = 0.0
+	var ty = 0.0
+	draw_rect(Rect2(tx - 4, ty - 2, 8, 7), body_color, true)
+	draw_rect(Rect2(tx - 4, ty - 2, 8, 7), Constants.COLOR_BLACK, false, 1.0)
+
+	# Arms (animated swing when walking/jumping)
+	var arm_swing = sin(walk_anim_timer) * 3.0 if is_on_floor() else -2.0
+	# Front arm
+	draw_rect(Rect2(tx + (3.0 * facing_dir) - 1, ty - 1 + arm_swing, 3, 5), body_color, true)
+	# Back arm
+	draw_rect(Rect2(tx - (3.0 * facing_dir) - 1, ty - 1 - arm_swing, 3, 5), body_color, true)
+
+	# Legs (stride animation or airborne jump pose)
+	var leg_y = ty + 5
+	if not is_on_floor():
+		# Jump pose: legs bent outward
+		draw_rect(Rect2(-4, leg_y, 3, 4), body_color, true)
+		draw_rect(Rect2(1, leg_y - 1, 3, 5), body_color, true)
+	else:
+		var leg_offset = sin(walk_anim_timer) * 3.0
+		# Left leg
+		draw_rect(Rect2(-4, leg_y, 3, 5 + leg_offset), body_color, true)
+		# Right leg
+		draw_rect(Rect2(1, leg_y, 3, 5 - leg_offset), body_color, true)
