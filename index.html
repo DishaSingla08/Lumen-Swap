@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Lumen Swap // Minimalistic 3-Color Puzzle Platformer</title>
+  <meta name="description" content="Lumen Swap: A high-contrast 3-color puzzle platformer built strictly around Black, White, and Red. Toggle color identities to phase through platforms and absorb lethal hazards." />
+  <link rel="stylesheet" href="./src/style.css" />
+</head>
+<body>
+  <div id="app-container">
+    <div id="game-canvas-wrapper">
+      <canvas id="game-canvas"></canvas>
+      <div class="scanlines"></div>
+
+      <!-- TOP HUD -->
+      <div id="game-hud">
+        <div class="hud-group">
+          <span id="hud-level-name">01 // THE VOID</span>
+          <span id="hud-form-badge" class="badge-white">WHITE FORM // SOLID: WHITE</span>
+        </div>
+
+        <div class="hud-group">
+          <!-- Lumen Energy Indicator -->
+          <div class="lumen-container">
+            <span class="lumen-label">LUMEN</span>
+            <div class="lumen-bar-track">
+              <div id="hud-lumen-bar"></div>
+            </div>
+            <span id="hud-lumen-value">100%</span>
+          </div>
+
+          <span id="hud-deaths" class="hud-stat">DEATHS: 0</span>
+          <span id="hud-timer" class="hud-stat">00:00.0</span>
+        </div>
+      </div>
+
+      <!-- BOTTOM INSTRUCTION HINT -->
+      <div id="hud-hint">A / D / ARROWS to Move. SPACE / W to Jump. SHIFT / J / X to Swap Color.</div>
+
+      <!-- MAIN MENU OVERLAY -->
+      <div id="menu-overlay" class="overlay">
+        <div class="modal-card">
+          <h1 class="game-title">LUMEN SWAP</h1>
+          <p class="game-subtitle">3-COLOR DUAL IDENTITY PUZZLE PLATFORMER</p>
+
+          <!-- 3-Color Legend Rule Explanation -->
+          <div class="color-legend">
+            <div class="legend-item">
+              <span class="legend-swatch swatch-black"></span>
+              <span class="legend-title">BLACK (#000000)</span>
+              <span class="legend-desc">The void, empty air, phase-through space.</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-swatch swatch-white"></span>
+              <span class="legend-title">WHITE (#FFFFFF)</span>
+              <span class="legend-desc">Safe state. Solid to White, ghost to Red.</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-swatch swatch-red"></span>
+              <span class="legend-title">RED (#FF0000)</span>
+              <span class="legend-desc">Danger & energy. Solid to Red, absorbs hazards!</span>
+            </div>
+          </div>
+
+          <div class="menu-actions">
+            <button id="btn-start-game" class="btn btn-primary">ENTER VOID [START]</button>
+            <button id="btn-open-levels" class="btn">STAGE SELECT</button>
+            <button id="btn-open-editor" class="btn">LEVEL EDITOR</button>
+          </div>
+
+          <div class="audio-controls-row">
+            <button id="btn-toggle-mute" class="btn btn-small">SOUND: ON</button>
+            <button id="btn-toggle-music" class="btn btn-small">PULSE: ON</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- LEVEL SELECT MODAL -->
+      <div id="level-select-modal" class="overlay hidden">
+        <div class="modal-card">
+          <h2 class="game-title" style="font-size: 32px;">SELECT SECTOR</h2>
+          <div id="level-select-grid"></div>
+          <button id="btn-close-levels" class="btn">BACK</button>
+        </div>
+      </div>
+
+      <!-- PAUSE OVERLAY -->
+      <div id="pause-overlay" class="overlay hidden">
+        <div class="modal-card">
+          <h2 class="game-title" style="font-size: 36px;">PAUSED</h2>
+          <div class="menu-actions">
+            <button id="btn-resume" class="btn btn-primary">RESUME [ESC]</button>
+            <button id="btn-restart-level" class="btn">RESTART STAGE [R]</button>
+            <button id="btn-exit-to-menu" class="btn">MAIN MENU</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- VICTORY OVERLAY -->
+      <div id="victory-overlay" class="overlay hidden">
+        <div class="modal-card">
+          <h1 class="game-title">LUMEN OVERCHARGE</h1>
+          <p class="game-subtitle">ALL SECTORS BREACHED // SYSTEM RESTORED</p>
+
+          <div class="victory-stats">
+            <div class="stat-item">
+              <span id="final-time" class="stat-val">00:00.0</span>
+              <span class="stat-label">TOTAL TIME</span>
+            </div>
+            <div class="stat-item">
+              <span id="final-deaths" class="stat-val">0</span>
+              <span class="stat-label">TOTAL DEATHS</span>
+            </div>
+          </div>
+
+          <div class="menu-actions">
+            <button id="btn-victory-replay" class="btn btn-primary">REPLAY PROTOCOL</button>
+            <button id="btn-victory-menu" class="btn">MAIN MENU</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- EDITOR TOOLBAR -->
+      <div id="editor-toolbar" class="hidden">
+        <div class="editor-tools-group">
+          <button class="editor-tool-btn active" data-tool="PLATFORM_WHITE">WHITE BLOCK</button>
+          <button class="editor-tool-btn" data-tool="PLATFORM_RED">RED BLOCK</button>
+          <button class="editor-tool-btn" data-tool="SPIKE_UP">RED SPIKE</button>
+          <button class="editor-tool-btn" data-tool="LASER_V">RED LASER</button>
+          <button class="editor-tool-btn" data-tool="SPAWN">SPAWN [P]</button>
+          <button class="editor-tool-btn" data-tool="PORTAL">PORTAL [E]</button>
+          <button class="editor-tool-btn" data-tool="ERASE">ERASER</button>
+        </div>
+        <div class="editor-actions-group">
+          <button id="btn-editor-play" class="btn btn-small btn-primary">TEST [T]</button>
+          <button id="btn-editor-export" class="btn btn-small">EXPORT</button>
+          <button id="btn-editor-import" class="btn btn-small">IMPORT</button>
+          <button id="btn-editor-clear" class="btn btn-small">CLEAR</button>
+          <button id="btn-editor-exit" class="btn btn-small">EXIT</button>
+        </div>
+      </div>
+
+      <!-- TOUCH CONTROLS FOR MOBILE -->
+      <div id="touch-controls">
+        <div class="touch-cluster">
+          <button id="touch-left" class="touch-btn">&larr;</button>
+          <button id="touch-right" class="touch-btn">&rarr;</button>
+        </div>
+        <div class="touch-cluster">
+          <button id="touch-swap" class="touch-btn">SWAP</button>
+          <button id="touch-jump" class="touch-btn">JUMP</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

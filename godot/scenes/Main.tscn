@@ -1,0 +1,360 @@
+[gd_scene load_steps=5 format=3 uid="uid://cmain001lumen"]
+
+[ext_resource type="Script" path="res://scripts/Main.gd" id="1_main"]
+[ext_resource type="Shader" path="res://shaders/crt_scanlines.gdshader" id="2_shader"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_crt"]
+shader = ExtResource("2_shader")
+shader_parameter/scanlines_enabled = true
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
+bg_color = Color(0, 0, 0, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 1, 1, 1)
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_main")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position_smoothing_enabled = true
+position_smoothing_speed = 8.0
+
+[node name="LevelContainer" type="Node2D" parent="."]
+
+[node name="HUDLayer" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="TopBar" type="HBoxContainer" parent="HUDLayer"]
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 20.0
+offset_top = 15.0
+offset_right = -20.0
+offset_bottom = 45.0
+grow_horizontal = 2
+theme_override_constants/separation = 18
+
+[node name="LevelName" type="Label" parent="HUDLayer/TopBar"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 14
+text = "01 // THE VOID"
+
+[node name="FormBadge" type="Label" parent="HUDLayer/TopBar"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0, 0, 0, 1)
+theme_override_font_sizes/font_size = 12
+text = "WHITE FORM // SOLID: WHITE"
+
+[node name="LumenContainer" type="HBoxContainer" parent="HUDLayer/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 2
+theme_override_constants/separation = 8
+
+[node name="LumenLabel" type="Label" parent="HUDLayer/TopBar/LumenContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0, 0, 1)
+theme_override_font_sizes/font_size = 12
+text = "LUMEN:"
+
+[node name="LumenBar" type="ProgressBar" parent="HUDLayer/TopBar/LumenContainer"]
+custom_minimum_size = Vector2(100, 14)
+layout_mode = 2
+size_flags_vertical = 4
+max_value = 100.0
+value = 100.0
+show_percentage = false
+
+[node name="LumenVal" type="Label" parent="HUDLayer/TopBar/LumenContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 12
+text = "100%"
+
+[node name="Deaths" type="Label" parent="HUDLayer/TopBar"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 12
+text = "DEATHS: 0"
+
+[node name="Timer" type="Label" parent="HUDLayer/TopBar"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 12
+text = "00:00.0"
+
+[node name="BottomHint" type="Label" parent="HUDLayer"]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -32.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 13
+text = "A / D / ARROWS to Move. SPACE to Jump. SHIFT / J / X to Swap Color."
+horizontal_alignment = 1
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+layer = 20
+
+[node name="MenuOverlay" type="Control" parent="UILayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Card" type="PanelContainer" parent="UILayer/MenuOverlay"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -220.0
+offset_top = -180.0
+offset_right = 220.0
+offset_bottom = 180.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="VBox" type="VBoxContainer" parent="UILayer/MenuOverlay/Card"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Title" type="Label" parent="UILayer/MenuOverlay/Card/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 32
+text = "LUMEN SWAP"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="UILayer/MenuOverlay/Card/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0, 0, 1)
+theme_override_font_sizes/font_size = 11
+text = "3-COLOR DUAL IDENTITY PUZZLE PLATFORMER"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="UILayer/MenuOverlay/Card/VBox"]
+layout_mode = 2
+
+[node name="LegendLabel" type="Label" parent="UILayer/MenuOverlay/Card/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 11
+text = "BLACK (#000000) = Empty Void Air
+WHITE (#FFFFFF) = Solid to White Form
+RED   (#FF0000) = Solid & Fuel to Red Form"
+horizontal_alignment = 1
+
+[node name="HSeparator2" type="HSeparator" parent="UILayer/MenuOverlay/Card/VBox"]
+layout_mode = 2
+
+[node name="BtnStart" type="Button" parent="UILayer/MenuOverlay/Card/VBox"]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "ENTER VOID [START]"
+
+[node name="BtnSectors" type="Button" parent="UILayer/MenuOverlay/Card/VBox"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "SECTOR SELECT"
+
+[node name="SectorOverlay" type="Control" parent="UILayer"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Card" type="PanelContainer" parent="UILayer/SectorOverlay"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = -180.0
+offset_right = 260.0
+offset_bottom = 180.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="Title" type="Label" parent="UILayer/SectorOverlay/Card"]
+layout_mode = 2
+size_flags_vertical = 0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 22
+text = "SELECT SECTOR"
+horizontal_alignment = 1
+
+[node name="GridContainer" type="GridContainer" parent="UILayer/SectorOverlay/Card"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 10
+columns = 2
+
+[node name="BtnCloseSectors" type="Button" parent="UILayer/SectorOverlay/Card"]
+custom_minimum_size = Vector2(100, 30)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 8
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "BACK"
+
+[node name="PauseOverlay" type="Control" parent="UILayer"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Card" type="PanelContainer" parent="UILayer/PauseOverlay"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -160.0
+offset_top = -130.0
+offset_right = 160.0
+offset_bottom = 130.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="VBox" type="VBoxContainer" parent="UILayer/PauseOverlay/Card"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Title" type="Label" parent="UILayer/PauseOverlay/Card/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 26
+text = "PAUSED"
+horizontal_alignment = 1
+
+[node name="BtnResume" type="Button" parent="UILayer/PauseOverlay/Card/VBox"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "RESUME [ESC]"
+
+[node name="BtnRestart" type="Button" parent="UILayer/PauseOverlay/Card/VBox"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "RESTART [R]"
+
+[node name="BtnQuitMenu" type="Button" parent="UILayer/PauseOverlay/Card/VBox"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "MAIN MENU"
+
+[node name="VictoryOverlay" type="Control" parent="UILayer"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Card" type="PanelContainer" parent="UILayer/VictoryOverlay"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -220.0
+offset_top = -160.0
+offset_right = 220.0
+offset_bottom = 160.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="VBox" type="VBoxContainer" parent="UILayer/VictoryOverlay/Card"]
+layout_mode = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="Title" type="Label" parent="UILayer/VictoryOverlay/Card/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 28
+text = "LUMEN OVERCHARGE"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="UILayer/VictoryOverlay/Card/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0, 0, 1)
+theme_override_font_sizes/font_size = 11
+text = "ALL SECTORS BREACHED // SYSTEM RESTORED"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="UILayer/VictoryOverlay/Card/VBox"]
+layout_mode = 2
+
+[node name="FinalTime" type="Label" parent="UILayer/VictoryOverlay/Card/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 16
+text = "FINAL TIME: 00:00.0"
+horizontal_alignment = 1
+
+[node name="FinalDeaths" type="Label" parent="UILayer/VictoryOverlay/Card/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 16
+text = "TOTAL DEATHS: 0"
+horizontal_alignment = 1
+
+[node name="BtnReplay" type="Button" parent="UILayer/VictoryOverlay/Card/VBox"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "REPLAY PROTOCOL"
+
+[node name="BtnVictoryMenu" type="Button" parent="UILayer/VictoryOverlay/Card/VBox"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "MAIN MENU"
+
+[node name="CRTOverlay" type="CanvasLayer" parent="."]
+layer = 30
+
+[node name="ColorRect" type="ColorRect" parent="CRTOverlay"]
+material = SubResource("ShaderMaterial_crt")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2

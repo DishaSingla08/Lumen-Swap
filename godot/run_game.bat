@@ -1,0 +1,3 @@
+@echo off
+echo Starting Lumen Swap in Godot Engine...
+start "" "C:\Users\disha singla\Downloads\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe" --path "%~dp0"
